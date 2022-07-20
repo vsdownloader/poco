@@ -138,7 +138,11 @@ void SocketReactor::stop()
 
 void SocketReactor::wakeUp()
 {
-	if (_pThread) _pThread->wakeUp();
+	if (_pThread && _pThread != Thread::current())
+	{
+		_pThread->wakeUp();
+		_pollSet.wakeUp();
+	}
 }
 
 
@@ -179,11 +183,14 @@ bool SocketReactor::hasEventHandler(const Socket& socket, const Poco::AbstractOb
 
 SocketReactor::NotifierPtr SocketReactor::getNotifier(const Socket& socket, bool makeNew)
 {
+	const SocketImpl* pImpl = socket.impl();
+	if (pImpl == nullptr) return 0;
+	poco_socket_t sockfd = pImpl->sockfd();
 	ScopedLock lock(_mutex);
 
-	EventHandlerMap::iterator it = _handlers.find(socket);
+	EventHandlerMap::iterator it = _handlers.find(sockfd);
 	if (it != _handlers.end()) return it->second;
-	else if (makeNew) return (_handlers[socket] = new SocketNotifier(socket));
+	else if (makeNew) return (_handlers[sockfd] = new SocketNotifier(socket));
 
 	return 0;
 }
@@ -191,6 +198,8 @@ SocketReactor::NotifierPtr SocketReactor::getNotifier(const Socket& socket, bool
 
 void SocketReactor::removeEventHandler(const Socket& socket, const Poco::AbstractObserver& observer)
 {
+	const SocketImpl* pImpl = socket.impl();
+	if (pImpl == nullptr) return;
 	NotifierPtr pNotifier = getNotifier(socket);
 	if (pNotifier && pNotifier->hasObserver(observer))
 	{
@@ -198,11 +207,20 @@ void SocketReactor::removeEventHandler(const Socket& socket, const Poco::Abstrac
 		{
 			{
 				ScopedLock lock(_mutex);
-				_handlers.erase(socket);
+				_handlers.erase(pImpl->sockfd());
 			}
 			_pollSet.remove(socket);
 		}
 		pNotifier->removeObserver(this, observer);
+
+		if (pNotifier->countObservers() > 0 && socket.impl()->sockfd() > 0)
+		{
+			int mode = 0;
+			if (pNotifier->accepts(_pReadableNotification)) mode |= PollSet::POLL_READ;
+			if (pNotifier->accepts(_pWritableNotification)) mode |= PollSet::POLL_WRITE;
+			if (pNotifier->accepts(_pErrorNotification))    mode |= PollSet::POLL_ERROR;
+			_pollSet.update(socket, mode);
+		}
 	}
 }
 

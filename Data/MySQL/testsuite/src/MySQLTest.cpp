@@ -45,7 +45,9 @@ Poco::SharedPtr<SQLExecutor> MySQLTest::_pExecutor = 0;
 #define MYSQL_USER "pocotest"
 #define MYSQL_PWD  "pocotest"
 #define MYSQL_HOST "127.0.0.1"
+#ifndef MYSQL_PORT
 #define MYSQL_PORT 3306
+#endif
 #define MYSQL_DB   "pocotest"
 
 //
@@ -420,6 +422,8 @@ void MySQLTest::testDateTime()
 	_pExecutor->date();
 	recreatePersonTimeTable();
 	_pExecutor->time();
+	recreatePersonTimestampTable();
+	_pExecutor->timestamp();
 }
 
 
@@ -467,6 +471,31 @@ void MySQLTest::testBLOBStmt()
 }
 
 
+void MySQLTest::testLongBLOB()
+{
+	if (!_pSession) fail ("Test not available.");
+
+	recreatePersonLongBLOBTable();
+	_pExecutor->longBlob();
+}
+
+void MySQLTest::testLongTEXT()
+{
+	if (!_pSession) fail ("Test not available.");
+
+	recreatePersonLongBLOBTable();
+	_pExecutor->longText();
+}
+
+void MySQLTest::testJSON()
+{
+	if (!_pSession) fail("Test not available.");
+
+	recreatePersonJSONTable();
+	_pExecutor->json();
+}
+
+
 void MySQLTest::testUnsignedInts()
 {
 	if (!_pSession) fail ("Test not available.");
@@ -491,6 +520,15 @@ void MySQLTest::testDouble()
 
 	recreateFloatsTable();
 	_pExecutor->doubles();
+}
+
+
+void MySQLTest::testUUID()
+{
+	if (!_pSession) fail ("Test not available.");
+
+	recreateUUIDsTable();
+	_pExecutor->uuids();
 }
 
 
@@ -741,6 +779,33 @@ void MySQLTest::recreatePersonTimeTable()
 }
 
 
+void MySQLTest::recreatePersonTimestampTable()
+{
+	dropTable("Person");
+	try { *_pSession << "CREATE TABLE Person (LastName VARCHAR(30), FirstName VARCHAR(30), Address VARCHAR(30), Birthday TIMESTAMP(6))", now; }
+	catch(ConnectionException& ce){ std::cout << ce.displayText() << std::endl; fail ("recreatePersonTimestampTable()"); }
+	catch(StatementException& se){ std::cout << se.displayText() << std::endl; fail ("recreatePersonTimestampTable()"); }
+}
+
+
+void MySQLTest::recreatePersonLongBLOBTable()
+{
+	dropTable("Person");
+	try { *_pSession << "CREATE TABLE Person (LastName VARCHAR(30), FirstName VARCHAR(30), Address VARCHAR(30), Biography LONGTEXT)", now; }
+	catch(ConnectionException& ce){ std::cout << ce.displayText() << std::endl; fail ("recreatePersonLongBLOBTable()"); }
+	catch(StatementException& se){ std::cout << se.displayText() << std::endl; fail ("recreatePersonLongBLOBTable()"); }
+}
+
+
+void MySQLTest::recreatePersonJSONTable()
+{
+	dropTable("Person");
+	try { *_pSession << "CREATE TABLE Person (LastName VARCHAR(30), FirstName VARCHAR(30), Address VARCHAR(30), Biography JSON)", now; }
+	catch (ConnectionException& ce) { std::cout << ce.displayText() << std::endl; fail("recreatePersonJSONTable()"); }
+	catch (StatementException& se) { std::cout << se.displayText() << std::endl; fail("recreatePersonJSONTable()"); }
+}
+
+
 void MySQLTest::recreateIntsTable()
 {
 	dropTable("Strings");
@@ -774,6 +839,15 @@ void MySQLTest::recreateFloatsTable()
 	try { *_pSession << "CREATE TABLE Strings (str FLOAT)", now; }
 	catch(ConnectionException& ce){ std::cout << ce.displayText() << std::endl; fail ("recreateFloatsTable()"); }
 	catch(StatementException& se){ std::cout << se.displayText() << std::endl; fail ("recreateFloatsTable()"); }
+}
+
+
+void MySQLTest::recreateUUIDsTable()
+{
+	dropTable("Strings");
+	try { *_pSession << "CREATE TABLE Strings (str CHAR(36))", now; }
+	catch(ConnectionException& ce){ std::cout << ce.displayText() << std::endl; fail ("recreateUUIDsTable()"); }
+	catch(StatementException& se){ std::cout << se.displayText() << std::endl; fail ("recreateUUIDsTable()"); }
 }
 
 
@@ -899,9 +973,13 @@ CppUnit::Test* MySQLTest::suite()
 	CppUnit_addTest(pSuite, MySQLTest, testDateTime);
 	//CppUnit_addTest(pSuite, MySQLTest, testBLOB);
 	CppUnit_addTest(pSuite, MySQLTest, testBLOBStmt);
+	CppUnit_addTest(pSuite, MySQLTest, testLongBLOB);
+	CppUnit_addTest(pSuite, MySQLTest, testLongTEXT);
+	CppUnit_addTest(pSuite, MySQLTest, testJSON);
 	CppUnit_addTest(pSuite, MySQLTest, testUnsignedInts);
 	CppUnit_addTest(pSuite, MySQLTest, testFloat);
 	CppUnit_addTest(pSuite, MySQLTest, testDouble);
+	CppUnit_addTest(pSuite, MySQLTest, testUUID);
 	CppUnit_addTest(pSuite, MySQLTest, testTuple);
 	CppUnit_addTest(pSuite, MySQLTest, testTupleVector);
 	CppUnit_addTest(pSuite, MySQLTest, testInternalExtraction);

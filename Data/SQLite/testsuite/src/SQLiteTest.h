@@ -74,8 +74,10 @@ public:
 	void testIllegalRange();
 	void testSingleSelect();
 	void testEmptyDB();
+	void testNonexistingDB();
 
 	void testCLOB();
+	void testBLOB();
 
 	void testTuple1();
 	void testTupleVector1();
@@ -99,6 +101,8 @@ public:
 	void testTupleVector10();
 
 	void testDateTime();
+
+	void testUUID();
 
 	void testInternalExtraction();
 	void testPrimaryKeyConstraint();
@@ -134,6 +138,7 @@ public:
 	void testFTS3();
 
 	void testIllegalFilePath();
+	void testTransactionTypeProperty();
 
 	void setUp();
 	void tearDown();

@@ -38,7 +38,7 @@ namespace
 	{
 		std::string connectionString;
 
-		for (std::map<std::string, std::string>::const_iterator citr = anOptionsMap.begin(); citr != anOptionsMap.end(); ++citr)
+		for (auto citr = anOptionsMap.begin(); citr != anOptionsMap.end(); ++citr)
 		{
 			connectionString.append(citr->first);
 			connectionString.append("=");
@@ -57,7 +57,8 @@ namespace PostgreSQL {
 
 
 SessionImpl::SessionImpl(const std::string& aConnectionString, std::size_t aLoginTimeout):
-	Poco::Data::AbstractSessionImpl<SessionImpl>(aConnectionString, aLoginTimeout)
+	Poco::Data::AbstractSessionImpl<SessionImpl>(aConnectionString, aLoginTimeout),
+	_connectorName("postgresql")
 {
 	setProperty("handle", static_cast<SessionHandle*>(&_sessionHandle));
 	setConnectionTimeout(CONNECTION_TIMEOUT_DEFAULT);
@@ -92,13 +93,13 @@ void SessionImpl::open(const std::string& aConnectionString)
 			throw ConnectionException("Session already connected");
 		}
 
-		if (! aConnectionString.empty())
+		if (!aConnectionString.empty())
 		{
 			setConnectionString(aConnectionString);
 		}
 	}
 
-	poco_assert_dbg (! connectionString().empty());
+	poco_assert_dbg (!connectionString().empty());
 
 	unsigned int timeout = static_cast<unsigned int>(getLoginTimeout());
 
@@ -139,6 +140,10 @@ void SessionImpl::open(const std::string& aConnectionString)
 	addFeature("asynchronousCommit",
 		&SessionImpl::setAutoCommit,
 		&SessionImpl::isAutoCommit);
+
+	addFeature("binaryExtraction",
+		&SessionImpl::setBinaryExtraction,
+		&SessionImpl::isBinaryExtraction);
 }
 
 
@@ -240,6 +245,15 @@ Poco::UInt32 SessionImpl::getTransactionIsolation() const
 bool SessionImpl::hasTransactionIsolation(Poco::UInt32 aTI) const
 {
 	return _sessionHandle.hasTransactionIsolation(aTI);
+}
+
+
+void SessionImpl::setBinaryExtraction(const std::string& feature, bool enabled)
+{
+	if (enabled && _sessionHandle.parameterStatus("integer_datetimes") != "on")
+		throw PostgreSQLException("binary extraction is not supported with this server (ingeger_datetimes must be enabled on the server)");
+
+	_binaryExtraction = enabled;
 }
 
 

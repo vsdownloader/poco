@@ -135,6 +135,7 @@
 #define POCO_ARCH_AARCH64 0x0f
 #define POCO_ARCH_ARM64   0x0f // same as POCO_ARCH_AARCH64
 #define POCO_ARCH_RISCV64 0x10
+#define POCO_ARCH_RISCV32 0x11
 
 
 #if defined(__ALPHA) || defined(__alpha) || defined(__alpha__) || defined(_M_ALPHA)
@@ -190,7 +191,7 @@
 	#else
 		#define POCO_ARCH_LITTLE_ENDIAN 1
 	#endif
-#elif defined(__arm64__) || defined(__arm64)
+#elif defined(__arm64__) || defined(__arm64) || defined(_M_ARM64)
 	#define POCO_ARCH POCO_ARCH_ARM64
 	#if defined(__ARMEB__)
 		#define POCO_ARCH_BIG_ENDIAN 1
@@ -225,8 +226,16 @@
 #elif defined(__AARCH64EB__)
 	#define POCO_ARCH POCO_ARCH_AARCH64
 	#define POCO_ARCH_BIG_ENDIAN 1
-#elif defined(__riscv) && (__riscv_xlen == 64)
-	#define POCO_ARCH POCO_ARCH_RISCV64
+#elif defined(__riscv)
+	#if (__riscv_xlen == 64)
+		#define POCO_ARCH POCO_ARCH_RISCV64
+		#define POCO_ARCH_LITTLE_ENDIAN 1
+	#elif(__riscv_xlen == 32)
+		#define POCO_ARCH POCO_ARCH_RISCV32
+		#define POCO_ARCH_LITTLE_ENDIAN 1
+	#endif
+#elif defined(__loongarch64)
+	#define POCO_ARCH POCO_ARCH_LOONGARCH64
 	#define POCO_ARCH_LITTLE_ENDIAN 1
 #endif
 
@@ -237,6 +246,9 @@
 	#define POCO_COMPILER_MSVC
 #elif defined (__GNUC__)
 	#define POCO_COMPILER_GCC
+	#if defined (__MINGW32__) || defined (__MINGW64__)
+		#define POCO_COMPILER_MINGW
+	#endif
 #elif defined (__MINGW32__) || defined (__MINGW64__)
 	#define POCO_COMPILER_MINGW
 #elif defined (__INTEL_COMPILER) || defined(__ICC) || defined(__ECC) || defined(__ICL)

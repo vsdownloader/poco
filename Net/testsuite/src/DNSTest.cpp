@@ -88,16 +88,27 @@ void DNSTest::testHostByAddress()
 
 void DNSTest::testResolve()
 {
+	HostEntry he1 = DNS::hostByName("localhost");
+
+	auto a = he1.addresses();
+	sort(a.begin(), a.end());
+	auto itA = std::unique(a.begin(), a.end());
+	assertTrue (itA == a.end());
+
+	auto b = he1.aliases();
+	sort(b.begin(), b.end());
+	auto itB = std::unique(b.begin(), b.end());
+	assertTrue (itB == b.end());
 }
 
 
 void DNSTest::testEncodeIDN()
 {
-	std::string idn("d\xc3\xb6m\xc3\xa4in.example"); // d"om"ain.example 
+	std::string idn("d\xc3\xb6m\xc3\xa4in.example"); // d"om"ain.example
 	assertTrue (DNS::isIDN(idn));
 	assertTrue (DNS::encodeIDN(idn) == "xn--dmin-moa0i.example");
 
-	idn = ".d\xc3\xb6m\xc3\xa4in.example"; // .d"om"ain.example 
+	idn = ".d\xc3\xb6m\xc3\xa4in.example"; // .d"om"ain.example
 	assertTrue (DNS::isIDN(idn));
 	assertTrue (DNS::encodeIDN(idn) == ".xn--dmin-moa0i.example");
 
@@ -143,11 +154,11 @@ void DNSTest::testDecodeIDN()
 {
 	std::string enc("xn--dmin-moa0i.example");
 	assertTrue (DNS::isEncodedIDN(enc));
-	assertTrue (DNS::decodeIDN(enc) == "d\xc3\xb6m\xc3\xa4in.example"); // d"om"ain.example 
+	assertTrue (DNS::decodeIDN(enc) == "d\xc3\xb6m\xc3\xa4in.example"); // d"om"ain.example
 
 	enc = ".xn--dmin-moa0i.example";
 	assertTrue (DNS::isEncodedIDN(enc));
-	assertTrue (DNS::decodeIDN(enc) == ".d\xc3\xb6m\xc3\xa4in.example"); // .d"om"ain.example 
+	assertTrue (DNS::decodeIDN(enc) == ".d\xc3\xb6m\xc3\xa4in.example"); // .d"om"ain.example
 
 	enc = "xn--dmin-moa0i.example.";
 	assertTrue (DNS::isEncodedIDN(enc));

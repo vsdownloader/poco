@@ -46,7 +46,6 @@ namespace
 		Poco::RegularExpression::Match match = { 0 , 0 }; // Match is a struct, not a class :-(
 
 		std::size_t startingPosition = 0;
-
 		while (match.offset != std::string::npos)
 		{
 			try
@@ -73,8 +72,9 @@ namespace Data {
 namespace PostgreSQL {
 
 
-StatementExecutor::StatementExecutor(SessionHandle& sessionHandle):
+StatementExecutor::StatementExecutor(SessionHandle& sessionHandle, bool binaryExtraction):
 	_sessionHandle(sessionHandle),
+	_binaryExtraction(binaryExtraction),
 	_state(STMT_INITED),
 	_pResultHandle(0),
 	_countPlaceholdersInSQLStatement(0),
@@ -110,7 +110,7 @@ StatementExecutor::State StatementExecutor::state() const
 
 void StatementExecutor::prepare(const std::string& aSQLStatement)
 {
-	if (! _sessionHandle.isConnected()) throw NotConnectedException();
+	if (!_sessionHandle.isConnected()) throw NotConnectedException();
 	if (_state >= STMT_COMPILED) return;
 
 	// clear out the metadata.  One way or another it is now obsolete.
@@ -160,7 +160,7 @@ void StatementExecutor::prepare(const std::string& aSQLStatement)
 
 	{
 		PQResultClear resultClearer(ptrPGResult);
-		if (! ptrPGResult || PQresultStatus(ptrPGResult) != PGRES_COMMAND_OK)
+		if (!ptrPGResult || PQresultStatus(ptrPGResult) != PGRES_COMMAND_OK)
 		{
 			throw StatementException(std::string("postgresql_stmt_describe error: ") +
 				PQresultErrorMessage (ptrPGResult) + " " + aSQLStatement);
@@ -186,7 +186,7 @@ void StatementExecutor::prepare(const std::string& aSQLStatement)
 
 void StatementExecutor::bindParams(const InputParameterVector& anInputParameterVector)
 {
-	if (! _sessionHandle.isConnected()) throw NotConnectedException();
+	if (!_sessionHandle.isConnected()) throw NotConnectedException();
 
 	if (_state < STMT_COMPILED) throw StatementException("Statement is not compiled yet");
 
@@ -203,7 +203,7 @@ void StatementExecutor::bindParams(const InputParameterVector& anInputParameterV
 
 void StatementExecutor::execute()
 {
-	if (! _sessionHandle.isConnected()) throw NotConnectedException();
+	if (!_sessionHandle.isConnected()) throw NotConnectedException();
 
 	if (_state < STMT_COMPILED) throw StatementException("Statement is not compiled yet");
 
@@ -225,8 +225,8 @@ void StatementExecutor::execute()
 	std::vector<int>  parameterLengthVector;
 	std::vector<int>  parameterFormatVector;
 
-	InputParameterVector::const_iterator cItr		= _inputParameterVector.begin();
-	InputParameterVector::const_iterator cItrEnd	= _inputParameterVector.end();
+	InputParameterVector::const_iterator cItr    = _inputParameterVector.begin();
+	InputParameterVector::const_iterator cItrEnd = _inputParameterVector.end();
 
 	for (; cItr != cItrEnd; ++cItr)
 	{
@@ -249,11 +249,12 @@ void StatementExecutor::execute()
 	{
 		Poco::FastMutex::ScopedLock mutexLocker(_sessionHandle.mutex());
 
-		ptrPGResult = PQexecPrepared (_sessionHandle,
+		ptrPGResult = PQexecPrepared(_sessionHandle,
 			_preparedStatementName.c_str(), (int)_countPlaceholdersInSQLStatement,
 			_inputParameterVector.size() != 0 ? &pParameterVector[ 0 ] : 0,
 			_inputParameterVector.size() != 0 ? &parameterLengthVector[ 0 ] : 0,
-			_inputParameterVector.size() != 0 ? &parameterFormatVector[ 0 ] : 0, 0);
+			_inputParameterVector.size() != 0 ? &parameterFormatVector[ 0 ] : 0,
+			_binaryExtraction ? 1 : 0);
 	}
 
 	// Don't setup to auto clear the result (ptrPGResult).  It is required to retrieve the results later.
@@ -315,7 +316,7 @@ void StatementExecutor::execute()
 
 bool StatementExecutor::fetch()
 {
-	if (! _sessionHandle.isConnected())
+	if (!_sessionHandle.isConnected())
 	{
 		throw NotConnectedException();
 	}

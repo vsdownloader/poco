@@ -124,6 +124,9 @@ public:
 	std::size_t size() const;
 		/// Returns the size of the array.
 
+	bool empty() const;
+ 		/// Returns true if the array is empty, false otherwise.
+
 	bool isArray(unsigned int index) const;
 		/// Returns true when the element is an array.
 
@@ -238,6 +241,12 @@ inline Array::ValueVec::const_iterator Array::end() const
 inline std::size_t Array::size() const
 {
 	return static_cast<std::size_t>(_values.size());
+}
+
+
+inline bool Array::empty() const
+{
+	return _values.empty();
 }
 
 
@@ -370,7 +379,7 @@ public:
 	void convert(std::string& s) const
 	{
 		std::ostringstream oss;
-		_val->stringify(oss, 2);
+		_val->stringify(oss);
 		s = oss.str();
 	}
 
@@ -504,7 +513,7 @@ public:
 	void convert(std::string& s) const
 	{
 		std::ostringstream oss;
-		_val.stringify(oss, 2);
+		_val.stringify(oss);
 		s = oss.str();
 	}
 

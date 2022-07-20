@@ -13,7 +13,8 @@
 
 
 #include "Poco/Data/PostgreSQL/PostgreSQLStatementImpl.h"
-
+#include "Poco/Data/PostgreSQL/Extractor.h"
+#include "Poco/Data/PostgreSQL/BinaryExtractor.h"
 
 namespace Poco {
 namespace Data {
@@ -22,11 +23,14 @@ namespace PostgreSQL {
 
 PostgreSQLStatementImpl::PostgreSQLStatementImpl(SessionImpl& aSessionImpl):
 	Poco::Data::StatementImpl(aSessionImpl),
-	_statementExecutor(aSessionImpl.handle()),
+	_statementExecutor(aSessionImpl.handle(), aSessionImpl.isBinaryExtraction()),
 	_pBinder(new Binder),
-	_pExtractor(new Extractor (_statementExecutor)),
 	_hasNext(NEXT_DONTKNOW)
 {
+	if (aSessionImpl.isBinaryExtraction())
+		_pExtractor = new BinaryExtractor(_statementExecutor);
+	else
+		_pExtractor = new Extractor(_statementExecutor);
 }
 
 
@@ -108,8 +112,7 @@ bool PostgreSQLStatementImpl::canBind() const
 {
 	bool ret = false;
 
-	if ((_statementExecutor.state() >= StatementExecutor::STMT_COMPILED)
-		 && !bindings().empty())
+	if ((_statementExecutor.state() >= StatementExecutor::STMT_COMPILED) && !bindings().empty())
 	{
 		ret = (*bindings().begin())->canBind();
 	}
